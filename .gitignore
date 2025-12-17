@@ -10,5 +10,3 @@ env/
 # Bỏ qua dữ liệu hệ thống Mac/Windows
 .DS_Store
 Thumbs.db
-
-data/

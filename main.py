@@ -1,15 +1,14 @@
 import streamlit as st
-from modules import backend, ui, auth, visualization
+# 1. Thêm import evaluation
+from modules import backend, ui, auth, visualization, evaluation 
 
 st.set_page_config(layout="wide", page_title="Spotifake", page_icon="🎧")
 st.markdown("""
 <style>
-    /* Ẩn Header mặc định của Streamlit */
+    /* Ẩn Header/Footer mặc định */
     header {visibility: hidden;}
-    /* Ẩn Footer mặc định */
     footer {visibility: hidden;}
     
-    /* Chỉnh font chữ đẹp hơn */
     html, body, [class*="css"] {
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
@@ -69,27 +68,39 @@ def main():
                 st.rerun()
         
         st.divider()
+        # NÚT 1: TRANG CHỦ
         if st.button("🏠 Trang chủ"):
             st.session_state['current_page'] = 'Home'
             st.rerun()
             
         st.divider()
-        # Nút Admin để xem biểu đồ báo cáo
+        st.caption("Công cụ Admin")
+        
+        # NÚT 2: BÁO CÁO (DASHBOARD)
         if st.button("📊 Xem Báo Cáo / Biểu đồ"):
             st.session_state['current_page'] = 'Dashboard'
+            st.rerun()
+
+        # NÚT 3: ĐÁNH GIÁ (TRANG MỚI)
+        if st.button("📈 Đánh giá Hiệu năng"):
+            st.session_state['current_page'] = 'Evaluation'
             st.rerun()
 
     # 5. ROUTER (ĐIỀU HƯỚNG TRANG)
     page = st.session_state['current_page']
     
+    # Lấy lịch sử chung (Dùng cho cả Home và Evaluation)
+    history = []
+    if not st.session_state['is_guest']:
+        history = auth.get_history(st.session_state['username'])
+    
     if page == 'Home':
         st.title(f"Chào {st.session_state['username']}, hôm nay nghe gì?")
         
-        # --- THANH TÌM KIẾM (SEARCH BAR) ---
+        # --- THANH TÌM KIẾM ---
         search_query = st.text_input("🔍 Tìm kiếm bài hát hoặc nghệ sĩ...", placeholder="Nhập tên bài hát (ví dụ: Alone, Chill...)")
         
         if search_query:
-            # === TRƯỜNG HỢP 1: CÓ TÌM KIẾM ===
             st.subheader(f"Kết quả tìm kiếm cho: '{search_query}'")
             results = backend.search_songs(df, search_query)
             
@@ -102,15 +113,18 @@ def main():
                 st.warning("Không tìm thấy bài hát nào!")
         
         else:
-            # === TRƯỜNG HỢP 2: KHÔNG TÌM KIẾM (HIỆN GỢI Ý) ===
+            # === HIỆN GỢI Ý THÔNG MINH ===
             
-            # Lấy lịch sử (chỉ user thật mới có)
-            history = []
+            # 1. Lấy chỉ số Profile Valence (Gu trung bình)
+            user_profile_val = 0.5
             if not st.session_state['is_guest']:
-                history = auth.get_history(st.session_state['username'])
+                # Load thông tin user để lấy profile_valence
+                u_data = auth.load_users().get(st.session_state['username'], {})
+                user_profile_val = u_data.get('profile_valence', 0.5)
+
+            # 2. Gọi hàm gợi ý (Truyền thêm user_profile_val)
+            recs_ctx, msg_ctx = backend.get_context_recommendations(df, history, user_profile_val)
             
-            # SECTION 1: GỢI Ý NGỮ CẢNH & TÂM TRẠNG
-            recs_ctx, msg_ctx = backend.get_context_recommendations(df, history)
             st.subheader(f"{msg_ctx}")
             
             cols = st.columns(4)
@@ -120,7 +134,7 @@ def main():
 
             st.markdown("---")
             
-            # SECTION 2: TRENDING (Ai cũng thấy)
+            # SECTION 2: TRENDING
             st.subheader("🔥 Top Thịnh hành")
             trending = df.sort_values('popularity', ascending=False).head(4)
             cols2 = st.columns(4)
@@ -134,7 +148,13 @@ def main():
             ui.render_player(song, df, model, st.session_state['is_guest'])
             
     elif page == 'Dashboard':
-        visualization.draw_charts(df)
+        # Trang Dashboard cũ
+        visualization.draw_charts(df) # Chỉ vẽ biểu đồ thống kê
+
+    elif page == 'Evaluation':
+        # TRANG ĐÁNH GIÁ MỚI
+        # Gọi hàm vẽ giao diện từ module evaluation
+        evaluation.draw_evaluation_page(df, history)
 
 if __name__ == "__main__":
     main()
