@@ -2,32 +2,52 @@ import streamlit as st
 from . import auth, visualization
 
 def render_login():
-    st.title("🎧 Music Pro System")
-    c1, c2 = st.columns(2)
+    st.title("🎧 Spotifake")
+    tab_login, tab_register = st.tabs(["Đăng nhập", "Đăng ký"])
     
-    with c1:
-        st.subheader("Đăng nhập")
-        u = st.text_input("Username", key="l_u")
-        p = st.text_input("Password", type="password", key="l_p")
-        if st.button("Login"):
-            if auth.login(u, p):
-                st.session_state['logged_in'] = True
-                st.session_state['username'] = u
-                st.session_state['is_guest'] = False
-                st.rerun()
-            else: st.error("Sai thông tin!")
+    with tab_login:
+        st.header("Đăng nhập")
+        # Dùng st.form để gom nhóm input, chỉ reload khi bấm nút
+        with st.form("login_form"):
+            u = st.text_input("Username", key="l_u")
+            p = st.text_input("Password", type="password", key="l_p")
+            
+            # Nút submit form
+            btn_login = st.form_submit_button("Đăng nhập", type="primary")
+            
+            if btn_login:
+                if auth.login(u, p):
+                    st.session_state['logged_in'] = True
+                    st.session_state['username'] = u
+                    st.session_state['is_guest'] = False
+                    st.rerun()
+                else: 
+                    st.error("❌ Sai tên đăng nhập hoặc mật khẩu!")
 
-    with c2:
-        st.subheader("Đăng ký")
-        nu = st.text_input("New Username", key="r_u")
-        np = st.text_input("New Password", type="password", key="r_p")
-        if st.button("Register"):
-            ok, msg = auth.register(nu, np)
-            if ok: st.success(msg)
-            else: st.error(msg)
+    with tab_register:
+        st.header("Tạo tài khoản mới")
+        with st.form("register_form"):
+            nu = st.text_input("New Username", key="r_u")
+            np = st.text_input("New Password", type="password", key="r_p")
+            # Thêm xác nhận mật khẩu cho chuyên nghiệp
+            np_confirm = st.text_input("Confirm Password", type="password", key="r_p_c")
+            
+            btn_register = st.form_submit_button("Đăng ký ngay")
+            
+            if btn_register:
+                if np != np_confirm:
+                    st.error("⚠️ Mật khẩu xác nhận không khớp!")
+                elif len(np) < 3:
+                    st.error("⚠️ Mật khẩu phải dài hơn 3 ký tự!")
+                else:
+                    ok, msg = auth.register(nu, np)
+                    if ok: 
+                        st.success(f"✅ {msg}! Vui lòng quay lại tab Đăng nhập.")
+                    else: 
+                        st.error(f"❌ {msg}")
             
     st.divider()
-    if st.button("🚀 Nghe nhạc với tư cách KHÁCH (Guest Mode)", type="primary"):
+    if st.button("Guest Mode", type="primary"):
         st.session_state['is_guest'] = True
         st.session_state['username'] = "Khách"
         st.rerun()
@@ -60,7 +80,7 @@ def render_player(song, df, model, is_guest=False):
             st.toast("✅ Đã lưu vào lịch sử nghe")
     
     with c2:
-        st.subheader("✨ Gợi ý tương tự (Content-Based)")
+        st.subheader("✨ Gợi ý tương tự")
         # Import local để tránh vòng lặp
         from . import backend
         recs = backend.get_content_based_recs(song, df, model)
@@ -75,7 +95,7 @@ def render_player(song, df, model, is_guest=False):
 
 def render_onboarding(df, username):
     st.title(f"👋 Chào mừng {username}!")
-    st.markdown("### Để Music Pro hiểu gu của bạn, hãy chọn ít nhất 3 thể loại.")
+    st.markdown("### Để chúng tôi hiểu gu của bạn, hãy chọn ít nhất 3 thể loại.")
     st.progress(0)
 
     # 1. Lấy danh sách thể loại từ file CSV
@@ -120,7 +140,7 @@ def render_song_card(row, index, key_prefix="card"):
     elif val <= 0.4:
         mood_icon = f"😔 Buồn (v:{val:.1f})"
     elif en >= 0.8:
-        mood_icon = f"⚡ (e:{en:.1f})"
+        mood_icon = f"⚡Hưng phấn (e:{en:.1f})"
     elif en <= 0.4 and val <= 0.5:
         mood_icon = f"🌙 Ngủ (e:{en:.1f})"
         

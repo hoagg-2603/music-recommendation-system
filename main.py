@@ -1,7 +1,7 @@
 import streamlit as st
 from modules import backend, ui, auth, visualization
 
-st.set_page_config(layout="wide", page_title="Music Pro", page_icon="🎧")
+st.set_page_config(layout="wide", page_title="Spotifake", page_icon="🎧")
 st.markdown("""
 <style>
     /* Ẩn Header mặc định của Streamlit */
@@ -111,7 +111,7 @@ def main():
             
             # SECTION 1: GỢI Ý NGỮ CẢNH & TÂM TRẠNG
             recs_ctx, msg_ctx = backend.get_context_recommendations(df, history)
-            st.subheader(f"🌟 {msg_ctx}")
+            st.subheader(f"{msg_ctx}")
             
             cols = st.columns(4)
             for i, (idx, row) in enumerate(recs_ctx.iterrows()):

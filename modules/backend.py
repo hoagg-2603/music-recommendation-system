@@ -84,28 +84,27 @@ def get_content_based_recs(song_row, df, model, k=6):
     except:
         return []
 
-def get_context_recommendations(df, user_history=None):
-    """
-    LOGIC GỢI Ý ĐA NGỮ CẢNH (ĐÃ SỬA LỖI LOGIC BUỒN)
-    """
-    # 1. ƯU TIÊN 1: PHÂN TÍCH LỊCH SỬ NGHE (User-Centric)
+def get_context_recommendations(df, user_history=None, user_profile_valence=0.5):
+    # user_profile_valence: Là chỉ số trung bình hằng ngày của user (lấy từ auth.py)
+    
     if user_history and len(user_history) >= 5:
+        # 1. Tính cảm xúc hiện tại (5 bài vừa nghe)
         recent_5 = user_history[:5]
-        # Lấy valence trung bình
-        avg_valence = sum([x.get('valence', 0.5) for x in recent_5]) / 5
+        current_mood = sum([x.get('valence', 0.5) for x in recent_5]) / 5
         
-        print(f"Debug: Avg Valence = {avg_valence}") # Dòng này để bạn kiểm tra
-
-        # LOGIC SỬA ĐỔI:
-        if avg_valence < 0.3: 
-            # Đang buồn -> Kéo mood lên (Gợi ý nhạc trung tính/vui nhẹ > 0.4)
-            # Thay vì tìm < 0.4 như cũ
-            return df[(df['valence'] > 0.4) & (df['valence'] < 0.7)].sample(8), "🌤️ Tâm trạng hơi chùng? Thử chút giai điệu tươi sáng hơn nhé."
+        # 2. So sánh với GU HẰNG NGÀY của chính họ (Profile)
+        # Delta: Độ lệch giữa hiện tại và bình thường
+        delta = current_mood - user_profile_valence
         
-        elif avg_valence > 0.6: 
-            # Đang vui (như hoang123) -> Gợi ý nhạc vui (Bất kể preference là acoustic)
-            return df[df['valence'] > 0.6].sample(8), "🔥 Bạn đang rất sung! Tiếp tục giữ nhiệt nào."
-
+        # Logic: Nếu lệch quá nhiều (> 0.2) về phía tiêu cực
+        if delta < -0.2:
+            return df[df['valence'] > current_mood + 0.2].sample(8), \
+                   f"🌤️ Có vẻ bạn buồn hơn mọi ngày (Delta: {delta:.2f})? Thử đổi gió nhé."
+                   
+        # Logic: Nếu lệch quá nhiều về phía tích cực
+        elif delta > 0.2:
+            return df[df['valence'] > 0.7].sample(8), \
+                   "🔥 Hôm nay bạn sung hơn bình thường! Quẩy tiếp nào."
     # 2. ƯU TIÊN 2: NẾU KHÔNG CÓ LỊCH SỬ ĐỦ LỚN -> THEO GIỜ (System-Centric)
     hour = datetime.datetime.now().hour
     

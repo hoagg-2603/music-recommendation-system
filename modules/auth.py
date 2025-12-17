@@ -38,20 +38,25 @@ def register(username, password):
     return True, "Thành công"
 
 def save_history(username, song_row):
-    """Lưu bài hát vào lịch sử kèm chỉ số cảm xúc"""
     users = load_users()
     if username in users:
+        # 1. Lưu bài hát mới vào lịch sử
         record = {
             "song": song_row['song'],
             "artist": song_row['artist'],
-            "valence": float(song_row.get('valence', 0.5)), # Lưu để phân tích Mood
-            "energy": float(song_row.get('energy', 0.5)),
+            "valence": float(song_row.get('valence', 0.5)),
             "timestamp": str(datetime.datetime.now())
         }
-        # Thêm vào đầu danh sách
         users[username]['history'].insert(0, record)
-        # Giữ lại 50 bài gần nhất
-        users[username]['history'] = users[username]['history'][:50]
+        
+        # 2. TÍNH TOÁN & LƯU "GU" TRUNG BÌNH (PROFILE VALENCE)
+        # Lấy toàn bộ lịch sử (hoặc 100 bài gần nhất) để tính trung bình
+        history = users[username]['history']
+        total_val = sum([x['valence'] for x in history])
+        
+        # Lưu giá trị trung bình này lại để dùng so sánh sau này
+        users[username]['profile_valence'] = total_val / len(history)
+        
         save_users(users)
 
 def get_history(username):
