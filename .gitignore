@@ -1,0 +1,14 @@
+# Bỏ qua file biên dịch Python
+__pycache__/
+*.py[cod]
+
+# Bỏ qua môi trường ảo
+venv/
+env/
+.venv
+
+# Bỏ qua dữ liệu hệ thống Mac/Windows
+.DS_Store
+Thumbs.db
+
+data/
